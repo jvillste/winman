@@ -171,6 +171,42 @@ func focusWindow(windowID: Int) {
     print("Window with ID \(windowID) not found in CGWindowList")
 }
 
+// Get screen space coordinates as JSON
+func getScreenSpace() {
+    // Get the main screen (primary display)
+    guard let mainScreen = NSScreen.main else {
+        print("Failed to retrieve main screen information")
+        return
+    }
+
+    // Get the full frame (including menu bar) and visible frame (excluding menu bar and dock)
+    let fullFrame = mainScreen.frame
+    let visibleFrame = mainScreen.visibleFrame
+
+    // Calculate menu bar height
+    let menuBarHeight = Int(fullFrame.height - visibleFrame.height - visibleFrame.origin.y)
+
+    // Coordinates for window placement: minY starts below the menu bar
+    let screenSpace: [String: Int] = [
+        "minX": Int(visibleFrame.origin.x),
+        "minY": Int(fullFrame.height - visibleFrame.maxY), // Top of visible area = below menu bar
+        "maxX": Int(visibleFrame.maxX),
+        "maxY": Int(visibleFrame.maxY),
+        "menuBarHeight": menuBarHeight
+    ]
+
+    do {
+        let jsonData = try JSONSerialization.data(withJSONObject: screenSpace, options: .prettyPrinted)
+        if let jsonString = String(data: jsonData, encoding: .utf8) {
+            print(jsonString)
+        } else {
+            print("Failed to convert screen space to JSON string")
+        }
+    } catch {
+        print("Failed to serialize screen space to JSON: \(error)")
+    }
+}
+
 // Main command-line parsing
 func main() {
     let arguments = CommandLine.arguments
@@ -181,6 +217,7 @@ func main() {
             \(arguments[0]) list
             \(arguments[0]) set <windowID> <x> <y> <width> <height>
             \(arguments[0]) focus <windowID>
+            \(arguments[0]) space
         """)
         exit(1)
     }
@@ -211,6 +248,9 @@ func main() {
         }
         focusWindow(windowID: windowID)
 
+    case "space":
+        getScreenSpace()
+
     default:
         print("Unknown command: \(command)")
         print("""
@@ -218,6 +258,7 @@ func main() {
             \(arguments[0]) list
             \(arguments[0]) set <windowID> <x> <y> <width> <height>
             \(arguments[0]) focus <windowID>
+            \(arguments[0]) space
         """)
         exit(1)
     }
